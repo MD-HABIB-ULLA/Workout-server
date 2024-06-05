@@ -181,9 +181,14 @@ async function run() {
         app.post('/payments', async (req, res) => {
             const payment = req.body;
             const id = req.body.bookingId
-            console.log(id)
+            // console.log(payment)
+            const classQuery = { name: payment.class }
             const paymentResult = await paymentCollection.insertOne(payment);
+            const classUpdate = await classesCollection.findOne(classQuery)
             // console.log('payment info', payment);
+            // console.log(classUpdate)
+            classUpdate.bookings += 1;
+            await classesCollection.updateOne(classQuery, { $set: { bookings: classUpdate.bookings } });
             const query = {
                 _id: new ObjectId(id)
             }
@@ -191,7 +196,7 @@ async function run() {
 
             const deleteResult = await bookingCollection.deleteOne(query);
 
-            res.send({paymentResult, deleteResult});
+            res.send({ paymentResult, deleteResult });
         })
 
 
