@@ -18,7 +18,7 @@ app.use(express.json())
 
 
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.zqymdgy.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -37,6 +37,7 @@ async function run() {
         const userCollection = client.db("workout").collection("users")
         const trainersCollection = client.db("workout").collection("trainers")
         const classesCollection = client.db("workout").collection("classes")
+        const bookingCollection = client.db("workout").collection("booking")
         app.get('/', (req, res) => {
             res.send('Hello World!')
         })
@@ -51,11 +52,11 @@ async function run() {
 
         // classes related api ------------------------------------------
         app.get('/classes', async (req, res) => {
-          
+
             const page = parseInt(req.query.page) || 1;
             const pageSize = 6;
 
-           
+
             const skip = (page - 1) * pageSize;
 
             const result = await classesCollection.aggregate([
@@ -102,6 +103,10 @@ async function run() {
             res.send(result);
 
         });
+        app.get('/classes/count', async (req, res) => {
+            const result = await classesCollection.countDocuments()
+            res.send({ result })
+        })
 
 
 
@@ -125,8 +130,31 @@ async function run() {
             const result = await trainersCollection.find().toArray()
             res.send(result)
         })
+        app.get('/trainers/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: new ObjectId(id) }
+            const result = await trainersCollection.findOne(query)
+            res.send(result)
+        })
 
 
+
+        // bookings related api _____---------------------------------------------
+
+        app.post("/booking", async (req, res) => {
+            const data = req.body
+            const result = await bookingCollection.insertOne(data)
+            res.send(result)
+        })
+
+
+
+
+
+
+
+
+        
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
