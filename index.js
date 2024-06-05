@@ -3,7 +3,7 @@ const app = express()
 const cors = require('cors');
 const port = process.env.PORT || 4000;
 const jwt = require('jsonwebtoken')
-
+const stripe = require('stripe')("sk_test_51PLSF52NHkygt9EvLzJWyOstCdquzjbXWNHrh0hCJLRWvEQGtkOJNHlaSSu2AutCcs5lF0aeT5pz84ZRNvTXxHxX00pu62gD6j");
 
 
 require('dotenv').config()
@@ -38,6 +38,7 @@ async function run() {
         const trainersCollection = client.db("workout").collection("trainers")
         const classesCollection = client.db("workout").collection("classes")
         const bookingCollection = client.db("workout").collection("booking")
+        const paymentCollection = client.db("workout").collection("payments")
         app.get('/', (req, res) => {
             res.send('Hello World!')
         })
@@ -146,6 +147,52 @@ async function run() {
             const result = await bookingCollection.insertOne(data)
             res.send(result)
         })
+        app.get("/booking", async (req, res) => {
+            const result = await bookingCollection.find().toArray()
+            res.send(result)
+        })
+
+
+        app.get('/booking/:email', async (req, res) => {
+            const email = req.params.email
+            const query = { "user.email": email }
+            const result = await bookingCollection.findOne(query)
+            res.send(result)
+        })
+
+
+
+
+        // payment related api -------------------------------------------
+        app.post('/create-payment-intent', async (req, res) => {
+            const { price } = req.body;
+            const amount = parseInt(price * 100);
+            console.log(amount)
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: 'usd',
+                payment_method_types: ['card']
+            });
+            res.send({
+                clientSecret: paymentIntent.client_secret
+            })
+
+        })
+        app.post('/payments', async (req, res) => {
+            const payment = req.body;
+            const id = req.body.bookingId
+            console.log(id)
+            const paymentResult = await paymentCollection.insertOne(payment);
+            // console.log('payment info', payment);
+            const query = {
+                _id: new ObjectId(id)
+            }
+
+
+            const deleteResult = await bookingCollection.deleteOne(query);
+
+            res.send({paymentResult, deleteResult});
+        })
 
 
 
@@ -154,7 +201,6 @@ async function run() {
 
 
 
-        
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
