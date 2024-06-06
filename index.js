@@ -39,6 +39,7 @@ async function run() {
         const classesCollection = client.db("workout").collection("classes")
         const bookingCollection = client.db("workout").collection("booking")
         const paymentCollection = client.db("workout").collection("payments")
+        const newsletterCollection = client.db("workout").collection("newsletters")
         app.get('/', (req, res) => {
             res.send('Hello World!')
         })
@@ -114,7 +115,7 @@ async function run() {
                 value: classItem.name,
                 label: classItem.name
             }));
-            res.send( formattedClasses )
+            res.send(formattedClasses)
         })
 
 
@@ -206,6 +207,34 @@ async function run() {
 
             res.send({ paymentResult, deleteResult });
         })
+
+
+
+
+
+
+
+
+
+        // Newsletter api -----------------------------------------------------------
+        app.post("/newsletter", async (req, res) => {
+            const data = req.body
+            const emailQuery = { email: req.body.email }
+            const email = await newsletterCollection.findOne(emailQuery)
+            if (email) {
+                res.status(400).json({ message: 'You already added your email to notify' });
+            } else {
+                const result = await newsletterCollection.insertOne(data)
+                res.send(result)
+            }
+
+        })
+
+
+
+
+
+
 
 
 
