@@ -108,6 +108,14 @@ async function run() {
             const result = await classesCollection.countDocuments()
             res.send({ result })
         })
+        app.get('/classes/name', async (req, res) => {
+            const classes = await classesCollection.find().toArray()
+            const formattedClasses = classes.map(classItem => ({
+                value: classItem.name,
+                label: classItem.name
+            }));
+            res.send( formattedClasses )
+        })
 
 
 
