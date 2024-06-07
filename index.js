@@ -45,6 +45,31 @@ async function run() {
         })
 
 
+
+
+
+
+
+
+
+
+        // middlewears ------------------------------------------
+        const verifytoken = (req, res, next) => {
+            // console.log('inside verify token', req.headers.authorization);
+            if (!req.headers.authorization) {
+                return res.status(401).send({ message: 'unauthorized access' });
+            }
+            const token = req.headers.authorization.split(' ')[1];
+            jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+                if (err) {
+                    return res.status(401).send({ message: 'unauthorized access' })
+                }
+                req.decoded = decoded;
+
+                next();
+            })
+        }
+
         // jwt related api------------------------------------------------
         app.post('/jwt', async (req, res) => {
             const user = req.body;
@@ -230,6 +255,28 @@ async function run() {
 
         })
 
+
+
+        // role selection related apis 
+        app.get('/users/role/:email', verifytoken, async (req, res) => {
+            const email = req.params.email;
+            if (email !== req.decoded.email) {
+                return res.status(403).send({ message: "Unauthorized access" });
+            }
+            const query = { email: email };
+            const user = await userCollection.findOne(query);
+
+            if (!user) {
+                return res.status(404).send({ message: "User not found" });
+            }
+            if (user.role === "admin") {
+                return res.send({ role: 'admin' });
+            }
+            if (user.role === "trainer") {
+                return res.send({ role: 'trainer' });
+            }
+            return res.send({ role: "user" });
+        });
 
 
 
