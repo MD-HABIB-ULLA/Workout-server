@@ -48,11 +48,6 @@ async function run() {
 
 
 
-
-
-
-
-
         // middlewears ------------------------------------------
         const verifytoken = (req, res, next) => {
             // console.log('inside verify token', req.headers.authorization);
@@ -69,6 +64,25 @@ async function run() {
                 next();
             })
         }
+
+
+        const verifyAdmin = async (req, res, next) => {
+            const email = req.decoded.email;
+            const query = { email: email };
+            const user = await userCollection.findOne(query);
+            const isAdmin = user?.role === 'admin';
+            if (!isAdmin) {
+                return res.status(403).send({ message: 'forbidden access' });
+            }
+
+            next();
+        }
+
+
+
+
+
+
 
         // jwt related api------------------------------------------------
         app.post('/jwt', async (req, res) => {
@@ -255,9 +269,14 @@ async function run() {
 
         })
 
+        app.get("/newsletter", verifytoken, verifyAdmin, async (req, res) => {
+            const result = await newsletterCollection.find().toArray()
+            res.send(result)
+        })
 
 
-        // role selection related apis 
+
+        // role selection related apis------------------------------------------ 
         app.get('/users/role/:email', verifytoken, async (req, res) => {
             const email = req.params.email;
             if (email !== req.decoded.email) {
