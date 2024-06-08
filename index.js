@@ -159,7 +159,6 @@ async function run() {
         })
         app.post('/classes', async (req, res) => {
             const data = req.body
-            console.log(data)
             const result = await classesCollection.insertOne(data)
             res.send(result)
         })
@@ -172,6 +171,19 @@ async function run() {
         app.post("/applictionBecameTrainer", async (req, res) => {
             const data = req.body
             const result = await aplicationCollection.insertOne(data)
+            res.send(result)
+        })
+        app.get("/applictionBecameTrainer/:email", async (req, res) => {
+            const email = req.params.email
+            const query = {email: email}
+            const result = await aplicationCollection.findOne(query)
+            res.send(result)
+        })
+        app.delete("/applictionBecameTrainer/:id", async (req, res) => {
+            const id = req.params.id
+
+            const query = {_id: new ObjectId(id)}
+            const result = await aplicationCollection.deleteOne(query)
             res.send(result)
         })
 
