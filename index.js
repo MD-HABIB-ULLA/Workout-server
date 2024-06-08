@@ -40,6 +40,7 @@ async function run() {
         const bookingCollection = client.db("workout").collection("booking")
         const paymentCollection = client.db("workout").collection("payments")
         const newsletterCollection = client.db("workout").collection("newsletters")
+        const aplicationCollection = client.db("workout").collection("aplication")
         app.get('/', (req, res) => {
             res.send('Hello World!')
         })
@@ -156,11 +157,26 @@ async function run() {
             }));
             res.send(formattedClasses)
         })
+        app.post('/classes', async (req, res) => {
+            const data = req.body
+            console.log(data)
+            const result = await classesCollection.insertOne(data)
+            res.send(result)
+        })
 
 
 
 
-        // user related post api------------------------------------ 
+
+        // application for  tranier -----------------------------------------------------------------------
+        app.post("/applictionBecameTrainer", async (req, res) => {
+            const data = req.body
+            const result = await aplicationCollection.insertOne(data)
+            res.send(result)
+        })
+
+
+        // user related post api------------------------------------ ----------------------------------
         app.post('/users', async (req, res) => {
             const user = req.body;
             console.log(user)
@@ -174,7 +190,23 @@ async function run() {
         });
 
 
-        // trainer related api ----------------------------------------
+        app.get("/userCount", verifytoken, verifyAdmin, async (req, res) => {
+            const result = await userCollection.countDocuments();
+            res.send({ count: result });
+        })
+
+
+
+
+
+
+
+
+
+
+
+
+        // trainer related api -----------------------------------------------------------------
         app.get('/trainers', async (req, res) => {
             const result = await trainersCollection.find().toArray()
             res.send(result)
@@ -185,10 +217,14 @@ async function run() {
             const result = await trainersCollection.findOne(query)
             res.send(result)
         })
+        app.get("/trainers", verifytoken, verifyAdmin, async (req, res) => {
+            const result = await trainersCollection.find().toArray()
+            res.send(result)
+        })
 
 
 
-        // bookings related api _____---------------------------------------------
+        // bookings related api _____-----------------------------------------------------------------
 
         app.post("/booking", async (req, res) => {
             const data = req.body
@@ -248,6 +284,29 @@ async function run() {
         })
 
 
+        app.get("/lastPayment", verifytoken, verifyAdmin, async (req, res) => {
+            const result = await paymentCollection.find({}).sort({ _id: -1 }).limit(6).toArray()
+            res.send(result)
+        })
+
+
+
+        app.get('/totalPrice', async (req, res) => {
+
+            const result = await paymentCollection.aggregate([
+                {
+                    $group: {
+                        _id: null,
+                        totalRevenue: {
+                            $sum: '$price'
+                        }
+                    }
+                }
+            ]).toArray();
+
+            const revenue = result.length > 0 ? result[0].totalRevenue : 0;
+            res.send({ revenue })
+        });
 
 
 
@@ -268,10 +327,13 @@ async function run() {
             }
 
         })
-
         app.get("/newsletter", verifytoken, verifyAdmin, async (req, res) => {
             const result = await newsletterCollection.find().toArray()
             res.send(result)
+        })
+        app.get("/newsletter/count", verifytoken, verifyAdmin, async (req, res) => {
+            const result = await newsletterCollection.countDocuments();
+            res.send({ count: result });
         })
 
 
