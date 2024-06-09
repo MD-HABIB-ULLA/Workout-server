@@ -334,7 +334,27 @@ async function run() {
             const result = await bookingCollection.findOne(query)
             res.send(result)
         })
-
+        app.post("/bookedEmail", verifytoken, verifyTrainer, async (req, res) => {
+            const name = req.body.name
+            const trainerName = req.body.trainerName
+            console.log(trainerName)
+            const quary = { soltName: name, trainerName: trainerName }
+            const result = await paymentCollection.find(quary).toArray()
+            res.send(result)
+        })
+        app.post("/sloteDelete", verifytoken, verifyTrainer, async (req, res) => {
+            const name = req.body.name
+            const trainerName = req.body.trainerName
+            console.log(trainerName)
+            const quary = { soltName: name, trainerName: trainerName }
+            // const result = await paymentCollection.find(quary).toArray()
+            const result = await trainersCollection.findOneAndUpdate(
+                { name: trainerName },
+                { $pull: { slots: { name: name } } },
+                { new: true }
+            );
+            res.send(result)
+        })
 
 
 
