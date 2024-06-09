@@ -79,6 +79,18 @@ async function run() {
             next();
         }
 
+        const verifyTrainer = async (req, res, next) => {
+            const email = req.decoded.email;
+            const query = { email: email };
+            const user = await userCollection.findOne(query);
+            const isTrainer = user?.role === 'trainer';
+            if (!isTrainer) {
+                return res.status(403).send({ message: 'forbidden access' });
+            }
+
+            next();
+        }
+
 
 
 
@@ -175,16 +187,65 @@ async function run() {
         })
         app.get("/applictionBecameTrainer/:email", async (req, res) => {
             const email = req.params.email
-            const query = {email: email}
+            const query = { email: email }
             const result = await aplicationCollection.findOne(query)
             res.send(result)
         })
+        app.get("/applictionBecameTrainer", verifytoken, verifyAdmin, async (req, res) => {
+            const result = await aplicationCollection.find().toArray()
+            res.send(result)
+        })
+
+
+        app.get("/trainerData/:id", verifytoken, verifyAdmin, async (req, res) => {
+            const id = req.params.id
+            console.log(id)
+            const quary = { _id: new ObjectId(id) }
+            const result = await aplicationCollection.findOne(quary)
+            res.send(result)
+        })
+
         app.delete("/applictionBecameTrainer/:id", async (req, res) => {
             const id = req.params.id
-
-            const query = {_id: new ObjectId(id)}
+            const query = { _id: new ObjectId(id) }
             const result = await aplicationCollection.deleteOne(query)
             res.send(result)
+        })
+
+        app.post("/applictionBecameTrainerUpdata", verifytoken, verifyAdmin, async (req, res) => {
+            const data = req.body
+            const email = req.body.email
+            const quary = { email: email }
+            const options = { upsert: true };
+            if (data.statusdata === 'rejected') {
+
+                const updatetedData = {
+                    $set: {
+                        status: data.statusdata,
+                        massage: data.massage
+                    }
+                }
+                const result = await aplicationCollection.updateOne(quary, updatetedData, options)
+                res.send(result)
+            }
+            if (data.statusdata === 'approved') {
+                const updatetedData = {
+                    $set: {
+                        status: data.statusdata
+                    }
+                }
+                const updatetedRole = {
+                    $set: {
+                        role: "trainer"
+                    }
+                }
+                const { _id, ...dataWithoutId } = data;
+
+                const result = await aplicationCollection.updateOne(quary, updatetedData, options)
+                const result1 = await trainersCollection.insertOne(dataWithoutId)
+                const result2 = await userCollection.updateOne(quary, updatetedRole, options)
+                res.send({ result, result1, result2 })
+            }
         })
 
 
@@ -234,7 +295,19 @@ async function run() {
             res.send(result)
         })
 
-
+        app.delete("/trainerDelete/:email", async (req, res) => {
+            const email = req.params.email
+            const query = { email: email }
+            const options = { upsert: true };
+            const updatetedRole = {
+                $set: {
+                    role: "",
+                }
+            }
+            const result2 = await userCollection.updateOne(query, updatetedRole, options)
+            const result = await trainersCollection.deleteOne(query)
+            res.send(result)
+        })
 
         // bookings related api _____-----------------------------------------------------------------
 
