@@ -10,6 +10,7 @@ require('dotenv').config()
 app.use(cors({
     origin: [
         'http://localhost:5173',
+        'https://workout-03.web.app'
 
     ],
     credentials: true
@@ -294,7 +295,12 @@ async function run() {
             const result = await trainersCollection.find().toArray()
             res.send(result)
         })
-
+        app.get('/trainerIndividualData/:email', verifytoken, verifyTrainer, async (req, res) => {
+            const email = req.params.email
+            const query = { email: email }
+            const result = await trainersCollection.findOne(query)
+            res.send(result)
+        })
         app.delete("/trainerDelete/:email", async (req, res) => {
             const email = req.params.email
             const query = { email: email }
@@ -452,7 +458,25 @@ async function run() {
 
 
 
+        // add slot -------------------------------------------------------------------------
+        app.post('/addSlot', verifytoken, verifyTrainer, async (req, res) => {
+            const data = req.body
+            const email = req.body.email
+            const query = { email: email }
+            const options = { upsert: true };
 
+            const updatetedData = {
+                $set: {
+                    specialties: req.body.specialties,
+                    availableDays: req.body.availableDays,
+                },
+                $push: {
+                    slots: req.body.slot,
+                }
+            }
+            const result = await trainersCollection.updateOne(query, updatetedData, options)
+            res.send(result)
+        })
 
 
 
