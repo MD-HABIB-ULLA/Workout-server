@@ -42,6 +42,7 @@ async function run() {
         const paymentCollection = client.db("workout").collection("payments")
         const newsletterCollection = client.db("workout").collection("newsletters")
         const aplicationCollection = client.db("workout").collection("aplication")
+        const forumCollection = client.db("workout").collection("forums")
         app.get('/', (req, res) => {
             res.send('Hello World!')
         })
@@ -107,6 +108,8 @@ async function run() {
 
         // classes related api ------------------------------------------
         app.get('/classes', async (req, res) => {
+            const search = req.query.search
+            console.log(search)
 
             const page = parseInt(req.query.page) || 1;
             const pageSize = 6;
@@ -115,6 +118,13 @@ async function run() {
             const skip = (page - 1) * pageSize;
 
             const result = await classesCollection.aggregate([
+                {
+                    $match: {
+                        $or: [
+                            { name: { $regex: search, $options: 'i' } },
+                        ]
+                    }
+                },
                 {
                     $lookup: {
                         from: "trainers",
@@ -200,7 +210,7 @@ async function run() {
 
         app.get("/trainerData/:id", verifytoken, verifyAdmin, async (req, res) => {
             const id = req.params.id
-            console.log(id)
+
             const quary = { _id: new ObjectId(id) }
             const result = await aplicationCollection.findOne(quary)
             res.send(result)
@@ -253,7 +263,7 @@ async function run() {
         // user related post api------------------------------------ ----------------------------------
         app.post('/users', async (req, res) => {
             const user = req.body;
-            console.log(user)
+
             const query = { email: user.email }
             const existingUser = await userCollection.findOne(query);
             if (existingUser) {
@@ -337,7 +347,7 @@ async function run() {
         app.post("/bookedEmail", verifytoken, verifyTrainer, async (req, res) => {
             const name = req.body.name
             const trainerName = req.body.trainerName
-            console.log(trainerName)
+
             const quary = { soltName: name, trainerName: trainerName }
             const result = await paymentCollection.find(quary).toArray()
             res.send(result)
@@ -345,7 +355,7 @@ async function run() {
         app.post("/sloteDelete", verifytoken, verifyTrainer, async (req, res) => {
             const name = req.body.name
             const trainerName = req.body.trainerName
-            console.log(trainerName)
+
             const quary = { soltName: name, trainerName: trainerName }
             // const result = await paymentCollection.find(quary).toArray()
             const result = await trainersCollection.findOneAndUpdate(
@@ -362,7 +372,7 @@ async function run() {
         app.post('/create-payment-intent', async (req, res) => {
             const { price } = req.body;
             const amount = parseInt(price * 100);
-            console.log(amount)
+
             const paymentIntent = await stripe.paymentIntents.create({
                 amount: amount,
                 currency: 'usd',
@@ -376,12 +386,11 @@ async function run() {
         app.post('/payments', async (req, res) => {
             const payment = req.body;
             const id = req.body.bookingId
-            // console.log(payment)
+
             const classQuery = { name: payment.class }
             const paymentResult = await paymentCollection.insertOne(payment);
             const classUpdate = await classesCollection.findOne(classQuery)
-            // console.log('payment info', payment);
-            // console.log(classUpdate)
+
             classUpdate.bookings += 1;
             await classesCollection.updateOne(classQuery, { $set: { bookings: classUpdate.bookings } });
             const query = {
@@ -498,6 +507,28 @@ async function run() {
             res.send(result)
         })
 
+
+        // forum related api ------------------------------------------------------------
+        app.post("/forumpost", async (req, res) => {
+            const data = req.body
+            const result = await forumCollection.insertOne(data)
+            res.send(result)
+        })
+        app.get("/forumpost", async (req, res) => {
+            const page = parseInt(req.query.page) || 1;
+            const pageSize = 6;
+
+
+            const skip = (page - 1) * pageSize;
+            const result = await forumCollection.aggregate([{ $skip: skip },
+            { $limit: pageSize },]).toArray()
+            // const count = await forumCollection.countDocuments()
+            res.send(result)
+        })
+        app.get("/forumpostCount", async (req, res) => {
+            const count = await forumCollection.countDocuments()
+            res.send({ count: count });
+        })
 
 
         // Send a ping to confirm a successful connection
