@@ -108,7 +108,7 @@ async function run() {
 
         // classes related api ------------------------------------------
         app.get('/classes', async (req, res) => {
-            const search = req.query.search
+            const search = req.query.search ? String(req.query.search) : '';
             console.log(search)
 
             const page = parseInt(req.query.page) || 1;
@@ -305,6 +305,10 @@ async function run() {
             const result = await trainersCollection.find().toArray()
             res.send(result)
         })
+        app.get("/bookedTrainer/:email", async (req, res) => {
+            const result = await paymentCollection.find({ email: req.params.email }).toArray()
+            res.send(result)
+        })
         app.get('/trainerIndividualData/:email', verifytoken, verifyTrainer, async (req, res) => {
             const email = req.params.email
             const query = { email: email }
@@ -324,6 +328,20 @@ async function run() {
             const result = await trainersCollection.deleteOne(query)
             res.send(result)
         })
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         // bookings related api _____-----------------------------------------------------------------
 
@@ -520,9 +538,18 @@ async function run() {
 
 
             const skip = (page - 1) * pageSize;
-            const result = await forumCollection.aggregate([{ $skip: skip },
+            const result = await forumCollection.aggregate([{
+                $sort: { _id: -1 }
+            }, { $skip: skip },
             { $limit: pageSize },]).toArray()
             // const count = await forumCollection.countDocuments()
+            res.send(result)
+        })
+        app.get("/forumpostHome", async (req, res) => {
+            const result = await forumCollection.aggregate([{
+                $sort: { _id: -1 }
+            }, { $limit: 6 }]).toArray()
+
             res.send(result)
         })
         app.get("/forumpostCount", async (req, res) => {
